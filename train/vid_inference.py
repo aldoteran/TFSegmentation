@@ -68,42 +68,7 @@ class Train(BasicTrain):
         ##################################################################################
         # Init load data and generator
         self.generator = None
-        if self.args.data_mode == "experiment_tfdata":
-            self.data_session = None
-            self.train_next_batch, self.train_data_len = self.init_tfdata(self.args.batch_size, self.args.abs_data_dir,
-                                                                          (self.args.img_height, self.args.img_width),
-                                                                          mode='train')
-            self.num_iterations_training_per_epoch = self.train_data_len // self.args.batch_size
-            self.generator = self.train_tfdata_generator
-        elif self.args.data_mode == "experiment_h5":
-            self.train_data = None
-            self.train_data_len = None
-            self.val_data = None
-            self.val_data_len = None
-            self.num_iterations_training_per_epoch = None
-            self.num_iterations_validation_per_epoch = None
-            self.load_train_data_h5()
-            self.generator = self.train_h5_generator
-        elif self.args.data_mode == "experiment_v2":
-            self.targets_resize = self.args.targets_resize
-            self.train_data = None
-            self.train_data_len = None
-            self.val_data = None
-            self.val_data_len = None
-            self.num_iterations_training_per_epoch = None
-            self.num_iterations_validation_per_epoch = None
-            self.load_train_data(v2=True)
-            self.generator = self.train_generator
-        elif self.args.data_mode == "experiment":
-            self.train_data = None
-            self.train_data_len = None
-            self.val_data = None
-            self.val_data_len = None
-            self.num_iterations_training_per_epoch = None
-            self.num_iterations_validation_per_epoch = None
-            self.load_train_data()
-            self.generator = self.train_generator
-        elif self.args.data_mode == "test_tfdata":
+        if self.args.data_mode == "test_tfdata":
             self.test_data = None
             self.test_data_len = None
             self.num_iterations_testing_per_epoch = None
@@ -158,102 +123,6 @@ class Train(BasicTrain):
             self.reporter = Reporter(self.args.out_dir + 'report_test.json', self.args)
             ##################################################################################
 
-    def crop(self):
-        sh = self.val_data['X'].shape
-        temp_val_data = {'X': np.zeros((sh[0] * 2, sh[1], sh[2] // 2, sh[3]), self.val_data['X'].dtype),
-                         'Y': np.zeros((sh[0] * 2, sh[1], sh[2] // 2), self.val_data['Y'].dtype)}
-        for i in range(sh[0]):
-            temp_val_data['X'][i * 2, :, :, :] = self.val_data['X'][i, :, :sh[2] // 2, :]
-            temp_val_data['X'][i * 2 + 1, :, :, :] = self.val_data['X'][i, :, sh[2] // 2:, :]
-            temp_val_data['Y'][i * 2, :, :] = self.val_data['Y'][i, :, :sh[2] // 2]
-            temp_val_data['Y'][i * 2 + 1, :, :] = self.val_data['Y'][i, :, sh[2] // 2:]
-
-        self.val_data = temp_val_data
-
-    def init_tfdata(self, batch_size, main_dir, resize_shape, mode='train'):
-        self.data_session = tf.Session()
-        print("Creating the iterator for training data")
-        with tf.device('/cpu:0'):
-            segdl = SegDataLoader(main_dir, batch_size, (resize_shape[0], resize_shape[1]), resize_shape,
-                                  # * 2), resize_shape,
-                                  'data/cityscapes_tfdata/train.txt')
-            iterator = Iterator.from_structure(segdl.data_tr.output_types, segdl.data_tr.output_shapes)
-            next_batch = iterator.get_next()
-
-            self.init_op = iterator.make_initializer(segdl.data_tr)
-            self.data_session.run(self.init_op)
-
-        print("Loading Validation data in memoryfor faster training..")
-        self.val_data = {'X': np.load(self.args.data_dir + "X_val.npy"),
-                         'Y': np.load(self.args.data_dir + "Y_val.npy")}
-        # self.crop()
-        # import cv2
-        # cv2.imshow('crop1', self.val_data['X'][0,:,:,:])
-        # cv2.imshow('crop2', self.val_data['X'][1,:,:,:])
-        # cv2.imshow('seg1', self.val_data['Y'][0,:,:])
-        # cv2.imshow('seg2', self.val_data['Y'][1,:,:])
-        # cv2.waitKey()
-
-        self.val_data_len = self.val_data['X'].shape[0] - self.val_data['X'].shape[0] % self.args.batch_size
-        #        self.num_iterations_validation_per_epoch = (
-        #                                                       self.val_data_len + self.args.batch_size - 1) // self.args.batch_size
-        self.num_iterations_validation_per_epoch = self.val_data_len // self.args.batch_size
-
-        print("Val-shape-x -- " + str(self.val_data['X'].shape) + " " + str(self.val_data_len))
-        print("Val-shape-y -- " + str(self.val_data['Y'].shape))
-        print("Num of iterations on validation data in one epoch -- " + str(self.num_iterations_validation_per_epoch))
-        print("Validation data is loaded")
-
-        return next_batch, segdl.data_len
-
-    @timeit
-    def load_overfit_data(self):
-        print("Loading data..")
-        self.train_data = {'X': np.load(self.args.data_dir + "X_train.npy"),
-                           'Y': np.load(self.args.data_dir + "Y_train.npy")}
-        self.train_data_len = self.train_data['X'].shape[0] - self.train_data['X'].shape[0] % self.args.batch_size
-        self.num_iterations_training_per_epoch = (
-                                                         self.train_data_len + self.args.batch_size - 1) // self.args.batch_size
-        print("Train-shape-x -- " + str(self.train_data['X'].shape))
-        print("Train-shape-y -- " + str(self.train_data['Y'].shape))
-        print("Num of iterations in one epoch -- " + str(self.num_iterations_training_per_epoch))
-        print("Overfitting data is loaded")
-
-        print("Loading Validation data..")
-        self.val_data = self.train_data
-        self.val_data_len = self.val_data['X'].shape[0] - self.val_data['X'].shape[0] % self.args.batch_size
-        self.num_iterations_validation_per_epoch = (
-                                                           self.val_data_len + self.args.batch_size - 1) // self.args.batch_size
-        print("Val-shape-x -- " + str(self.val_data['X'].shape) + " " + str(self.val_data_len))
-        print("Val-shape-y -- " + str(self.val_data['Y'].shape))
-        print("Num of iterations on validation data in one epoch -- " + str(self.num_iterations_validation_per_epoch))
-        print("Validation data is loaded")
-
-    def overfit_generator(self):
-        start = 0
-        new_epoch_flag = True
-        idx = None
-        while True:
-            # init index array if it is a new_epoch
-            if new_epoch_flag:
-                if self.args.shuffle:
-                    idx = np.random.choice(self.train_data_len, self.train_data_len, replace=False)
-                else:
-                    idx = np.arange(self.train_data_len)
-                new_epoch_flag = False
-
-            # select the mini_batches
-            mask = idx[start:start + self.args.batch_size]
-            x_batch = self.train_data['X'][mask]
-            y_batch = self.train_data['Y'][mask]
-
-            start += self.args.batch_size
-            if start >= self.train_data_len:
-                start = 0
-                new_epoch_flag = True
-
-            yield x_batch, y_batch
-
     def init_summaries(self):
         """
         Create the summary part of the graph
@@ -269,24 +138,15 @@ class Train(BasicTrain):
                 self.summary_placeholders[tag] = tf.placeholder('float32', shape, name=tag)
                 self.summary_ops[tag] = tf.summary.image(tag, self.summary_placeholders[tag], max_outputs=10)
 
-    def add_summary(self, step, summaries_dict=None, summaries_merged=None):
-        """
-        Add the summaries to tensorboard
-        :param step:
-        :param summaries_dict:
-        :param summaries_merged:
-        :return:
-        """
-        if summaries_dict is not None:
-            summary_list = self.sess.run([self.summary_ops[tag] for tag in summaries_dict.keys()],
-                                         {self.summary_placeholders[tag]: value for tag, value in
-                                          summaries_dict.items()})
-            for summary in summary_list:
-                self.summary_writer.add_summary(summary, step)
-        if summaries_merged is not None:
-            self.summary_writer.add_summary(summaries_merged, step)
-
-    @timeit
+    def load_vid_data(self):
+        print("Loading Video data..")
+        self.test_data = {'X': np.load(self.args.data_dir + "X_vid.npy")}
+        self.test_data['Y'] = np.zeros(self.test_data['X'].shape[:3])
+        self.test_data_len = self.test_data['X'].shape[0]
+        print("Vid-shape-x -- " + str(self.test_data['X'].shape))
+        print("Vid-shape-y -- " + str(self.test_data['Y'].shape))
+        self.num_iterations_testing_per_epoch = (self.test_data_len + self.args.batch_size - 1) // self.args.batch_size
+        print("Video data is loaded")
 
     def load_test_data(self):
         print("Loading Testing data..")
@@ -564,88 +424,3 @@ class Train(BasicTrain):
         self.summary_writer.close()
         self.save_model()
 
-    def debug_layers(self):
-        """
-        This function will be responsible for output all outputs of all layers and dump them in a pickle
-
-        :return:
-        """
-        print("Debugging mode will begin NOW..")
-
-        layers = tf.get_collection('debug_layers')
-        print("ALL Layers in the collection that i wanna to run {} layer".format(len(layers)))
-        for layer in layers:
-            print(layer)
-
-        # exit(0)
-
-        # reset metrics
-        self.metrics.reset()
-
-        print('mean image ', self.debug_x.mean())
-        print('mean gt ', self.debug_y.mean())
-
-        self.debug_y = self.linknet_preprocess_gt(self.debug_y)
-
-        feed_dict = {self.test_model.x_pl: self.debug_x,
-                     self.test_model.y_pl: self.debug_y,
-                     self.test_model.is_training: False
-                     }
-
-        #        var = [v for v in tf.all_variables() if v.op.name == "network/decoder_block_4/deconv/deconv/weights"]
-        #        conv_w= self.sess.run(var[0])
-        #        var = [v for v in tf.all_variables() if v.op.name == "network/decoder_block_4/deconv/deconv/biases"]
-        #        bias= self.sess.run(var[0])
-
-        # run the feed_forward
-        out_layers = self.sess.run(layers, feed_dict=feed_dict)
-        for layer in out_layers:
-            print(layer.shape)
-
-        #        dict_out= torchfile.load('out_networks_layers/dict_out.t7')
-        ##        init= tf.constant_initializer(conv_w)
-        ##        conv_w1 = tf.get_variable('my_weights', [3,3,128,128], tf.float32, initializer=init, trainable=True)
-        #        pp= tf.nn.relu(layers[39])
-        #        out_relu= self.sess.run(pp, feed_dict={self.test_model.x_pl: self.debug_x,
-        #                     self.test_model.y_pl: self.debug_y,
-        #                     self.test_model.is_training: False
-        #                     })
-        ##        pp = tf.nn.conv2d_transpose(layers[39], conv_w, (1,32,64,128), strides=(1,2,2,1), padding="SAME")
-        ##        pp= tf.image.resize_images(layers[39], (32,64))
-        ##        pp = tf.nn.conv2d(pp, conv_w, strides=(1,1,1,1), padding="SAME")
-        ##        bias1= tf.get_variable('my_bias', 128, tf.float32, tf.constant_initializer(bias))
-        #        pp = tf.nn.bias_add(pp, bias)
-        #        #self.sess.run(conv_w1.initializer)
-        #        #self.sess.run(bias1.initializer)
-        #        out_deconv= self.sess.run(pp, feed_dict={self.test_model.x_pl: self.debug_x,
-        #                     self.test_model.y_pl: self.debug_y,
-        #                     self.test_model.is_training: False
-        #                     })
-        #        out_deconv_direct= self.sess.run(layers[40], feed_dict={self.test_model.x_pl: self.debug_x,
-        #                     self.test_model.y_pl: self.debug_y,
-        #                     self.test_model.is_training: False
-        #                     })
-        #        pdb.set_trace()
-
-        # print(out_layers)
-        # exit(0)
-
-        # dump them in a pickle
-        with open("out_networks_layers/out_linknet_layers.pkl", "wb") as f:
-            pickle.dump(out_layers, f, protocol=2)
-
-        # run the feed_forward again to see argmax and segmented
-        out_argmax, segmented_imgs = self.sess.run(
-            [self.test_model.out_argmax,
-             self.test_model.segmented_summary],
-            feed_dict=feed_dict)
-
-        print('mean preds ', out_argmax[0].mean())
-
-        plt.imsave(self.args.out_dir + 'imgs/' + 'debug.png', segmented_imgs[0])
-
-        self.metrics.update_metrics(out_argmax[0], self.debug_y, 0, 0)
-
-        mean_iou = self.metrics.compute_final_metrics(1)
-
-        print("mean_iou_of_debug: " + str(mean_iou))

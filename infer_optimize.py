@@ -27,6 +27,7 @@ with tf.Session(graph=G) as sess:
     print('Operations in Graph:')
     print([op.name for op in G.get_operations()])
     x = G.get_tensor_by_name('import/network/input/Placeholder:0')
+    is_training = G.get_tensor_by_name('import/network/input/Placeholder_2:0'),
 
     tf.global_variables_initializer().run()
 
@@ -35,7 +36,7 @@ with tf.Session(graph=G) as sess:
     # Experiment should be repeated in order to get an accurate value for the inference time and FPS.
     for _ in tqdm(range(args.iterations)):
         start = time.time()
-        out = sess.run(y, feed_dict={x: img})
+        out = sess.run(y, feed_dict={x: img, is_training: False})
         fps_meter.update(time.time() - start)
 
 fps_meter.print_statistics()

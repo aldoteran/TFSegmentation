@@ -26,7 +26,7 @@
 
 #2- FCN8s MobileNet Test
 #python3 main.py --load_config=fcn8s_mobilenet_test.yaml test Train FCN8sMobileNet
-python3 main.py --load_config=fcn8s_mobilenet_test.yaml inference Train FCN8sMobileNet
+#python3 main.py --load_config=fcn8s_mobilenet_test.yaml inference Train FCN8sMobileNet
 
 #3- UNet MobileNet Train Coarse+Fine
 #python3 main.py --load_config=unet_mobilenet_traincoarse.yaml train Train UNetMobileNet
@@ -53,7 +53,7 @@ python3 main.py --load_config=fcn8s_mobilenet_test.yaml inference Train FCN8sMob
 #python3 main.py --load_config=fcn8s_shufflenet_train.yaml train Train FCN8sShuffleNet
 
 #2- FCN8s ShuffleNet Test
-#python3 main.py --load_config=fcn8s_shufflenet_test.yaml test Train FCN8sShuffleNet
+python3 main.py --load_config=fcn8s_shufflenet_test.yaml test Train FCN8sShuffleNet
 #python3 main.py --load_config=fcn8s_shufflenet_test.yaml inference Train FCN8sShuffleNet
 
 #3- UNet ShuffleNet Train Coarse+Fine

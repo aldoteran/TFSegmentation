@@ -884,10 +884,10 @@ class Train(BasicTrain):
         #        for n in tf.get_default_graph().as_graph_def().node:
         #            if 'input' in n.name:#if 'Argmax' in n.name:
         #                import pdb; pdb.set_trace()
-        print("Saving graph...")
-        tf.train.write_graph(self.sess.graph_def, ".", 'graph.pb')
-        print("Graph saved successfully.\n\n")
-        # exit(1)
+        #print("Saving graph...")
+        #tf.train.write_graph(self.sess.graph_def, ".", 'graph.pb')
+        #print("Graph saved successfully.\n\n")
+        #exit(1)
 
         # init tqdm and get the epoch value
         tt = tqdm(range(self.test_data_len))
