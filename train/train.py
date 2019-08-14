@@ -798,7 +798,7 @@ class Train(BasicTrain):
         print("Saving graph...")
         tf.train.write_graph(self.sess.graph_def, ".", 'graph.pb')
         print("Graph saved successfully.\n\n")
-        exit(1)
+        # exit(1)
 
         # init tqdm and get the epoch value
         tt = tqdm(range(self.test_data_len))
