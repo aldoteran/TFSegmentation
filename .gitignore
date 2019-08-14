@@ -3,12 +3,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Experiments
+experiments/
+
 # C extensions
 *.so
 
 # Data
 data/data_for_test_n_overfit/
 data/174_imgs_for_test_n_overfit/
+data/full_cityscapes_res/
 
 # Distribution / packaging
 .Python
@@ -132,11 +136,12 @@ pretrained_weights/*.pkl
 pretrained_weights/linknet/
 
 # imgs
-#*.png
-#*.jpg
+*.png
+*.jpg
 
 # tmp files
 *~
+.swp
 
 # h5 files
 *.h5
