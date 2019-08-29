@@ -6,6 +6,7 @@ import tensorflow as tf
 
 from models import *
 from train import *
+# import train_ros
 from test import *
 from utils.misc import timeit
 
@@ -99,7 +100,7 @@ class Agent:
         elif self.mode == 'inference':
             self.inference()
         elif self.mode == 'inference_pkl':
-            self.load_pretrained_weights(self.sess, 'pretrained_weights/linknet_weights.pkl')
+            self.load_pretrained_weights(self.sess, 'pretrained_weights/mobilenet_v1.pkl')
             self.test(pkl=True)
         elif self.mode == 'debug':
             self.debug()

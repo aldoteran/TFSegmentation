@@ -32,9 +32,12 @@ with tf.Session(graph=G) as sess:
     tf.global_variables_initializer().run()
 
     img = np.ones((1, 360, 640, 3), dtype=np.uint8)
+    # img = img[0:1024, 0:1024]
+    # img = np.expand_dims(img, 0)
+
     fps_meter = FPSMeter()
     # Experiment should be repeated in order to get an accurate value for the inference time and FPS.
-    for _ in tqdm(range(args.iterations)):
+    for _ in tqdm(range(50)):
         start = time.time()
         out = sess.run(y, feed_dict={x: img, is_training: False})
         fps_meter.update(time.time() - start)

@@ -4,8 +4,8 @@ exp_dir:  "fcn8s_mobilenet"
 out_dir:  "fcn8s_mobilenet"
 
 # Data arguments
-img_height:   360
-img_width:    640
+img_height:   1024
+img_width:    1360
 num_channels: 3
 num_classes:  20
 
