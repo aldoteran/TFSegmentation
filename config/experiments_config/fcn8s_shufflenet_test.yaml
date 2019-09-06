@@ -5,7 +5,7 @@ out_dir:  "fcn8s_shufflenet"
 
 # Data arguments
 img_height:   1024
-img_width:    1024
+img_width:    1360
 num_channels: 3
 num_classes:  20
 

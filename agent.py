@@ -42,28 +42,12 @@ class Agent:
     @timeit
     def build_model(self):
 
-        if self.mode == 'train' or self.mode == 'overfit':  # validation phase
-            with tf.variable_scope('network') as scope:
-                self.model = self.model(self.args)
-                self.model.build()
-
-        #            print('Building Train Network')
-        #            with tf.variable_scope('network') as scope:
-        #                self.train_model = self.model(self.args, phase=0)
-        #                self.train_model.build()
-        #
-        #            print('Building Test Network')
-        #            with tf.variable_scope('network') as scope:
-        #                scope.reuse_variables()
-        #                self.test_model = self.model(self.args, phase=1)
-        #                self.test_model.build()
-        else:  # inference phase
-            print('Building Test Network')
-            with tf.variable_scope('network') as scope:
-                self.train_model = None
-                self.model = self.model(self.args)
-                self.model.build()
-                calculate_flops()
+        print('Building Test Network')
+        with tf.variable_scope('network') as scope:
+            self.train_model = None
+            self.model = self.model(self.args)
+            self.model.build()
+            calculate_flops()
 
     @timeit
     def run(self):
@@ -77,7 +61,6 @@ class Agent:
         tf.reset_default_graph()
 
         # Create the sess
-        # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)
         gpu_options = tf.GPUOptions(allow_growth=True)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True))
 
@@ -88,59 +71,11 @@ class Agent:
         # Create the operator
         self.operator = self.operator(self.args, self.sess, self.model, self.model)
 
-        if self.mode == 'train_n_test':
-            print("Sorry this mode is not available for NOW")
-            exit(-1)
-            # self.train()
-            # self.test()
-        elif self.mode == 'train':
-            self.train()
-        elif self.mode == 'overfit':
-            self.overfit()
-        elif self.mode == 'inference':
-            self.inference()
-        elif self.mode == 'inference_pkl':
-            self.load_pretrained_weights(self.sess, 'pretrained_weights/mobilenet_v1.pkl')
-            self.test(pkl=True)
-        elif self.mode == 'debug':
-            self.debug()
-        elif self.mode == 'test':
-            self.test()
-        elif self.mode == 'test_eval':
-            self.test_eval()
-        else:
-            print("This mode {{{}}}  is not found in our framework".format(self.mode))
-            exit(-1)
+        # Run the network
+        self.test()
 
         self.sess.close()
         print("\nAgent is exited...\n")
-
-    def load_pretrained_weights(self, sess, pretrained_path):
-        print('############### START Loading from PKL ##################')
-        with open(pretrained_path, 'rb') as ff:
-            pretrained_weights = pickle.load(ff, encoding='latin1')
-
-            print("Loading pretrained weights of resnet18")
-            # all_vars = tf.trainable_variables()
-            # all_vars += tf.get_collection('mu_sigma_bn')
-            all_vars = tf.all_variables()
-            for v in all_vars:
-                if v.op.name in pretrained_weights.keys():
-                    if str(v.shape) != str(pretrained_weights[v.op.name].shape):
-                        print(v.shape)
-                        print(pretrained_weights[v.op.name].shape)
-                        exit(0)
-                    assign_op = v.assign(pretrained_weights[v.op.name])
-                    sess.run(assign_op)
-                    print(v.op.name + " - loaded successfully, size ", pretrained_weights[v.op.name].shape)
-            print("All pretrained weights of resnet18 is loaded")
-
-    def train(self):
-        try:
-            self.operator.train()
-            self.operator.finalize()
-        except KeyboardInterrupt:
-            self.operator.finalize()
 
     def test(self, pkl=False):
         try:
@@ -148,28 +83,9 @@ class Agent:
         except KeyboardInterrupt:
             pass
 
-    def test_eval(self, pkl=False):
-        try:
-            self.operator.test_eval(pkl)
-        except KeyboardInterrupt:
-            pass
-
-    def overfit(self):
-        try:
-            self.operator.overfit()
-            self.operator.finalize()
-        except KeyboardInterrupt:
-            self.operator.finalize()
-
     def inference(self):
         try:
             self.operator.test_inference()
         except KeyboardInterrupt:
             pass
 
-    def debug(self):
-        self.load_pretrained_weights(self.sess, 'pretrained_weights/linknet_weights.pkl')
-        try:
-            self.operator.debug_layers()
-        except KeyboardInterrupt:
-            pass
